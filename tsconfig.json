@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",                       // Use modern JavaScript features.
+    "module": "NodeNext",                     // Enable ES modules.
+    "moduleResolution": "nodenext",           // Ensure compatibility with Node.js module resolution.
+    "esModuleInterop": true,                  // Enable interoperability with CommonJS modules.
+    "strict": true,                           // Enable strict type checking.
+    "skipLibCheck": true,                     // Skip type checking of declaration files.
+    "forceConsistentCasingInFileNames": true, // Ensure consistent file naming.
+    "outDir": "./dist",                       // Output folder for compiled JS files.
+    "rootDir": ".",                       // The root folder for your TypeScript code.
+    "resolveJsonModule": true,                // Enable importing JSON files as modules.
+    "allowJs": true,                          // Allow JS files to be used alongside TS.
+    "noEmitOnError": true,                    // Don't emit JS if there are TypeScript errors.
+    "useUnknownInCatchVariables": true        // Enforce type safety in catch clauses.
+  },
+  "include": ["src/**/*.ts", "config.ts", "google-drive-aws-s3-sync.ts"],                 // Include all TS files in src folder.
+  "exclude": ["node_modules"]                 // Exclude the node_modules folder.
+}
