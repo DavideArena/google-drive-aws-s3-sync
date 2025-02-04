@@ -1,8 +1,7 @@
 {
   "name": "google-drive-aws-s3-sync",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Sync Google Drive folder to S3 bucket",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
@@ -10,8 +9,37 @@
     "lint:fix": "eslint . --fix"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Davide Arena <arena.davide97@gmail.com> (https://github.com/DavideArena)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DavideArena/google-drive-aws-s3-sync.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DavideArena/google-drive-aws-s3-sync/issues"
+  },
+  "homepage": "https://github.com/DavideArena/google-drive-aws-s3-sync/blob/main/README.md",
+  "keywords": [
+    "aws",
+    "aws-s3",
+    "google-drive",
+    "s3-sync",
+    "google-drive-sync",
+    "aws-lambda",
+    "eventbridge",
+    "cloud-storage",
+    "typescript",
+    "nodejs",
+    "cdk",
+    "aws-cdk",
+    "cron",
+    "automation",
+    "serverless",
+    "google-api",
+    "drive-api",
+    "file-transfer",
+    "google-drive-backup"
+  ],
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.5",
