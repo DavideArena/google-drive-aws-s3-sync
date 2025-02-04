@@ -3,23 +3,9 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { addDays, startOfDay } from 'date-fns';
 import { drive_v3, Auth } from 'googleapis';
-import pino from 'pino';
+import { Logger } from 'pino';
 import { PassThrough } from 'stream';
 
-/**
- * A record that maps Google Drive MIME types to their corresponding export formats.
- *
- * The keys represent the MIME types of Google Drive files, and the values represent
- * the MIME types of the formats to which these files should be exported.
- *
- * Supported export formats:
- * - Google Docs to Word Document
- * - Google Sheets to Excel Spreadsheet
- * - Google Slides to PowerPoint Presentation
- * - Google Drawings to PNG Image
- * - Google Apps Script to JSON Manifest
- * - Google Jamboard to PDF
- */
 const DEFAULT_EXPORT_FORMATS: Record<string, string> = {
   'application/vnd.google-apps.document':
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // Export Google Docs as PDF
@@ -33,22 +19,27 @@ const DEFAULT_EXPORT_FORMATS: Record<string, string> = {
   'application/vnd.google-apps.jam': 'application/pdf',
 };
 
+const DRIVE_AUTH_SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
+
+const DRIVE_FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+
 export class SyncManager {
   private s3Client: S3Client;
   private driveClient: drive_v3.Drive;
   private nestingLimit: number;
   private config: ConfigSchema;
-  private logger: pino.Logger;
+  private logger: Logger;
 
-  constructor(config: ConfigSchema, logger: pino.Logger) {
+  constructor(config: ConfigSchema, logger: Logger) {
     this.config = config;
     this.logger = logger;
-    this.nestingLimit = parseInt(config.SYNC_NESTING_LEVEL_LIMIT);
 
+    this.nestingLimit = parseInt(config.SYNC_NESTING_LEVEL_LIMIT);
     if (isNaN(this.nestingLimit)) {
       this.logger.error('SYNC_NESTING_LEVEL_LIMIT must be a number');
       throw new Error('SYNC_NESTING_LEVEL_LIMIT must be a number');
     }
+
     this.s3Client = new S3Client({
       region: config.AWS_S3_REGION,
       credentials: {
@@ -57,11 +48,8 @@ export class SyncManager {
       },
     });
 
-    const SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
-
-    // Auth Google Drive
     const auth = new Auth.GoogleAuth({
-      scopes: SCOPES,
+      scopes: DRIVE_AUTH_SCOPES,
       credentials: {
         type: 'service_account',
         project_id: config.GOOGLE_PROJECT_ID,
@@ -76,6 +64,13 @@ export class SyncManager {
     this.driveClient = new drive_v3.Drive({ auth });
   }
 
+  /**
+   * Recursively syncs all files and subfolders of a given Google Drive folder to AWS S3.
+   *
+   * @param folderId The ID of the Google Drive folder to sync.
+   * @param currentPathDirectories The path of the current folder in the Google Drive hierarchy.
+   * @returns A Promise that resolves when all files in the folder have been synced to S3.
+   */
   async syncFolder(folderId: string, currentPathDirectories: string[] = []) {
     if (currentPathDirectories.length > 0) {
       this.logger.info(`Entering folder: ${currentPathDirectories.join('/')}`);
@@ -83,7 +78,7 @@ export class SyncManager {
       this.logger.info('Entering root folder');
     }
 
-    const items = await this.listFolderContents(folderId);
+    const items = await this.listDriveFolderContents(folderId);
 
     this.logger.info({ items }, 'Items in folder');
 
@@ -97,7 +92,7 @@ export class SyncManager {
       }
 
       // If is a folder, should go deeper
-      if (item.mimeType === 'application/vnd.google-apps.folder') {
+      if (item.mimeType === DRIVE_FOLDER_MIME_TYPE) {
         const newPathDirectories = [...currentPathDirectories, item.name];
 
         if (newPathDirectories.length > this.nestingLimit) {
@@ -110,7 +105,6 @@ export class SyncManager {
           );
           continue;
         }
-
         await this.syncFolder(item.id, newPathDirectories);
       } else {
         this.logger.info({ item }, 'Processing file');
@@ -129,7 +123,14 @@ export class SyncManager {
     }
   }
 
-  async listFolderContents(folderId: string) {
+  /**
+   * Lists the contents of a Google Drive folder.
+   * @param {string} folderId The id of the folder to list
+   * @returns {Promise<drive_v3.Schema$File[]>} A promise that resolves with an array of file objects
+   */
+  private async listDriveFolderContents(
+    folderId: string,
+  ): Promise<drive_v3.Schema$File[]> {
     const yesterday = startOfDay(addDays(new Date(), -1)).toISOString();
 
     // Loop through all the pages of the folder contents
@@ -149,7 +150,7 @@ export class SyncManager {
 
       const response: drive_v3.Schema$FileList = (
         await this.driveClient.files.list({
-          q: `'${folderId}' in parents and trashed = false and (mimeType = 'application/vnd.google-apps.folder' OR (createdTime >= '${yesterday}' OR modifiedTime >= '${yesterday}'))`,
+          q: `'${folderId}' in parents and trashed = false and (mimeType = '${DRIVE_FOLDER_MIME_TYPE}' OR (createdTime >= '${yesterday}' OR modifiedTime >= '${yesterday}'))`,
           fields: 'files(id, name, mimeType, trashed), nextPageToken',
           pageToken: nextPageToken,
           pageSize: 1000,
@@ -168,12 +169,18 @@ export class SyncManager {
     return files;
   }
 
-  async uploadFileToS3(params: {
+  /**
+   * Uploads a file to S3, given a file ID, file name, file mime type and folder path.
+   * If the file is a Google Docs file, it will be exported with the correct mime type.
+   * @param {{ fileId: string, fileName: string, fileMimeType: string, folderPath: string }} params The parameters.
+   * @returns {Promise<void>} A promise that resolves when the file is uploaded.
+   */
+  private async uploadFileToS3(params: {
     fileId: string;
     fileName: string;
     fileMimeType: string;
     folderPath: string;
-  }) {
+  }): Promise<void> {
     const { fileId, fileName, folderPath, fileMimeType } = params;
 
     // Default use the mimeType of file loaded from Google Drive
@@ -240,6 +247,11 @@ export class SyncManager {
     this.logger.info(`Uploaded file: ${s3FileKey}`);
   }
 
+  /**
+   * Gets the export mime type for a given google file mime type.
+   * @param mimeType - The mime type of the Google file.
+   * @returns The export mime type or null if no export format is found.
+   */
   getGoogleFileExportMimeType(mimeType: string) {
     const exportMimeType = DEFAULT_EXPORT_FORMATS[mimeType] || null;
 
