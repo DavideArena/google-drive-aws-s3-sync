@@ -252,7 +252,7 @@ export class SyncManager {
    * @param mimeType - The mime type of the Google file.
    * @returns The export mime type or null if no export format is found.
    */
-  getGoogleFileExportMimeType(mimeType: string) {
+  private getGoogleFileExportMimeType(mimeType: string) {
     const exportMimeType = DEFAULT_EXPORT_FORMATS[mimeType] || null;
 
     if (!exportMimeType) {
