@@ -1,4 +1,3 @@
-
 # Google Drive to S3 Sync Manager
 
 ## Disclaimer
@@ -30,7 +29,7 @@ The sync on each run checks for new/updated files to be synced of last day. It i
 
 ```sh
 git clone https://github.com/DavideArena/google-drive-aws-s3-sync
-cd google-drive-s3-sync
+cd google-drive-aws-s3-sync
 ```
 
 ### 2️⃣ Install dependencies
@@ -45,8 +44,8 @@ Before running the script, set up environment variables or a configuration file.
 
 ### Required Environment Variables
 
-| Variable                     | Description                                    |
-| ---------------------------- | ---------------------------------------------- |
+| Variable                   | Description                                    |
+| -------------------------- | ---------------------------------------------- |
 | `AWS_S3_REGION`            | AWS region of the S3 bucket                    |
 | `AWS_S3_BUCKET_NAME`       | Name of the S3 bucket                          |
 | `AWS_S3_ACCESS_KEY_ID`     | AWS IAM Access Key ID                          |
@@ -84,23 +83,23 @@ import pino from 'pino';
 
 const logger = pino();
 const config: ConfigSchema = {
-AWS_S3_REGION: 'us-east-1',
-AWS_S3_BUCKET_NAME: 'my-s3-bucket',
-AWS_S3_ACCESS_KEY_ID: 'your-access-key',
-AWS_S3_SECRET_ACCESS_KEY: 'your-secret-key',
-GOOGLE_PROJECT_ID: 'your-google-project-id',
-GOOGLE_PRIVATE_KEY_ID: 'your-private-key-id',
-GOOGLE_PRIVATE_KEY: 'your-private-key',
-GOOGLE_CLIENT_EMAIL: 'your-service-account-email',
-GOOGLE_CLIENT_ID: 'your-client-id',
-SYNC_NESTING_LEVEL_LIMIT: '3',
+  AWS_S3_REGION: 'us-east-1',
+  AWS_S3_BUCKET_NAME: 'my-s3-bucket',
+  AWS_S3_ACCESS_KEY_ID: 'your-access-key',
+  AWS_S3_SECRET_ACCESS_KEY: 'your-secret-key',
+  GOOGLE_PROJECT_ID: 'your-google-project-id',
+  GOOGLE_PRIVATE_KEY_ID: 'your-private-key-id',
+  GOOGLE_PRIVATE_KEY: 'your-private-key',
+  GOOGLE_CLIENT_EMAIL: 'your-service-account-email',
+  GOOGLE_CLIENT_ID: 'your-client-id',
+  SYNC_NESTING_LEVEL_LIMIT: '3',
 };
 
 const syncManager = new SyncManager(config, logger);
 
 // Start syncing a Google Drive folder (provide the folder ID)
 syncManager.syncFolder('your-drive-folder-id').then(() => {
-    logger.info('Sync completed!');
+  logger.info('Sync completed!');
 });
 ```
 
@@ -112,14 +111,14 @@ syncManager.syncFolder('your-drive-folder-id').then(() => {
 
 ### Supported Google File Formats
 
-| Google File Type             | Export Format          |
-| ---------------------------- | ---------------------- |
+| Google File Type           | Export Format        |
+| -------------------------- | -------------------- |
 | Google Docs (`.gdoc`)      | `.docx` (Word)       |
 | Google Sheets (`.gsheet`)  | `.xlsx` (Excel)      |
 | Google Slides (`.gslides`) | `.pptx` (PowerPoint) |
-| Google Drawings              | `.png`               |
-| Google Scripts               | `.json`              |
-| Google Jams                  | `.pdf`               |
+| Google Drawings            | `.png`               |
+| Google Scripts             | `.json`              |
+| Google Jams                | `.pdf`               |
 
 ## 📜 Logging
 
