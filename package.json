@@ -8,7 +8,6 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
-  "keywords": [],
   "author": "Davide Arena <arena.davide97@gmail.com> (https://github.com/DavideArena)",
   "license": "MIT",
   "repository": {
